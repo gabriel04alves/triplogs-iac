@@ -78,7 +78,7 @@ resource "aws_key_pair" "deployer" {
 
 resource "aws_instance" "control_plane" {
   ami           = var.ami_id
-  instance_type = "t2.micro"
+  instance_type = "t3.medium"
   subnet_id     = aws_subnet.main.id
   vpc_security_group_ids = [aws_security_group.k3s.id]
   key_name      = aws_key_pair.deployer.key_name
