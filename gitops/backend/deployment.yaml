@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: triplogs-backend
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: triplogs-backend
+  template:
+    metadata:
+      labels:
+        app: triplogs-backend
+    spec:
+      containers:
+        - name: triplogs-backend
+          image: ghcr.io/gabriel04alves/triplogs-frontend
+          ports:
+            - containerPort: 80

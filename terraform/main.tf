@@ -83,75 +83,13 @@ resource "aws_instance" "control_plane" {
   vpc_security_group_ids = [aws_security_group.k3s.id]
   key_name      = aws_key_pair.deployer.key_name
   tags = { Name = "k3s-control-plane" }
-
-  provisioner "file" {
-    source      = "${path.module}/scripts/install_k3s.sh"
-    destination = "/tmp/install_k3s.sh"
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = file(var.private_key_path)
-      host        = self.public_ip
-    }
-  }
-  provisioner "remote-exec" {
-    inline = [
-      "chmod +x /tmp/install_k3s.sh",
-      "/tmp/install_k3s.sh"
-    ]
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = file(var.private_key_path)
-      host        = self.public_ip
-    }
-  }
-
-  # Aguardar alguns segundos para garantir que o k3s está rodando e o token foi gerado
-  provisioner "remote-exec" {
-    inline = ["sleep 10"]
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = file(var.private_key_path)
-      host        = self.public_ip
-    }
-  }
-}
-
-data "external" "k3s_token" {
-  depends_on = [aws_instance.control_plane]
-  program = ["sh", "-c", "ssh -i ${var.private_key_path} -o StrictHostKeyChecking=no ubuntu@${aws_instance.control_plane.public_ip} 'sudo cat /var/lib/rancher/k3s/server/node-token' | jq -R '{token: .}'"]
 }
 
 resource "aws_instance" "worker" {
   ami           = var.ami_id
-  instance_type = "t2.micro"
+  instance_type = "t3.medium"
   subnet_id     = aws_subnet.main.id
   vpc_security_group_ids = [aws_security_group.k3s.id]
   key_name      = aws_key_pair.deployer.key_name
   tags = { Name = "k3s-worker" }
-
-  provisioner "file" {
-    source      = "${path.module}/scripts/join_k3s.sh"
-    destination = "/tmp/join_k3s.sh"
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = file(var.private_key_path)
-      host        = self.public_ip
-    }
-  }
-  provisioner "remote-exec" {
-    inline = [
-      "chmod +x /tmp/join_k3s.sh",
-      "/tmp/join_k3s.sh ${aws_instance.control_plane.private_ip} '${data.external.k3s_token.result.token}'"
-    ]
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = file(var.private_key_path)
-      host        = self.public_ip
-    }
-  }
 }
