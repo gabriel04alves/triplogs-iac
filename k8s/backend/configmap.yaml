@@ -11,6 +11,6 @@ data:
   # IP local (use o serviço interno do Kubernetes)
   MY_IP: "0.0.0.0"
   # Hosts permitidos
-  ALLOWED_HOSTS: "*.triplogs.com,backend.triplogs.com,triplogs-backend-service.triplogs-prod.svc.cluster.local"
+  ALLOWED_HOSTS: "triplogs-backend-service"
   # CORS - permitir o frontend
-  CORS_ALLOWED_ORIGINS: "http://frontend.triplogs.com,https://frontend.triplogs.com,http://triplogs-frontend-service.triplogs-prod.svc.cluster.local"
+  CORS_ALLOWED_ORIGINS: "*"
