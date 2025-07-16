@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: triplogs-backend
+  namespace: triplogs-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: triplogs-backend
+  template:
+    metadata:
+      labels:
+        app: triplogs-backend
+    spec:
+      containers:
+        - name: triplogs-backend
+          image: ghcr.io/gabriel04alves/triplogs-backend:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            # Importar variáveis do ConfigMap
+            - name: MODE
+              valueFrom:
+                configMapKeyRef:
+                  name: triplogs-backend-config
+                  key: MODE
+            - name: DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: triplogs-backend-config
+                  key: DEBUG
+            - name: MY_IP
+              valueFrom:
+                configMapKeyRef:
+                  name: triplogs-backend-config
+                  key: MY_IP
+            - name: ALLOWED_HOSTS
+              valueFrom:
+                configMapKeyRef:
+                  name: triplogs-backend-config
+                  key: ALLOWED_HOSTS
+            - name: CORS_ALLOWED_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: triplogs-backend-config
+                  key: CORS_ALLOWED_ORIGINS
+            # Importar variáveis de banco de dados do Secret existente
+            - name: DATABASE_URL
+              value: "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)"
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_PASSWORD
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DB_PORT
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"

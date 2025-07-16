@@ -1,15 +1,14 @@
-
-output "control_plane_public_ip" {
-  value = aws_instance.control_plane.public_ip
-  description = "Public IP of the k3s control-plane node"
+output "argocd_server_url" {
+  value = "http://${helm_release.argocd.name}.${helm_release.argocd.namespace}.svc.cluster.local"
 }
 
-output "worker_public_ip" {
-  value = aws_instance.worker.public_ip
-  description = "Public IP of the k3s worker node"
+output "rds_endpoint" {
+  description = "Endpoint da instância RDS PostgreSQL"
+  value       = aws_db_instance.postgres.endpoint
 }
 
-output "vpc_id" {
-  value = aws_vpc.main.id
-  description = "VPC ID"
+output "rds_connection_url" {
+  description = "URL de conexão para o PostgreSQL"
+  value       = "postgresql://${var.db_username}:${var.db_password}@${aws_db_instance.postgres.endpoint}/${var.db_name}"
+  sensitive   = true
 }

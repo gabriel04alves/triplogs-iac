@@ -1,44 +1,38 @@
-
-variable "aws_region" {
-  description = "AWS region to deploy resources"
+# AWS Region
+variable "region" {
+  description = "AWS region for the infrastructure"
   type        = string
   default     = "us-east-1"
 }
 
-variable "aws_az" {
-  description = "AWS availability zone"
+# Database Variables
+variable "db_name" {
+  description = "Name of the PostgreSQL database"
   type        = string
-  default     = "us-east-1a"
+  default     = "triplogs"
 }
 
-variable "vpc_cidr" {
-  description = "CIDR block for the VPC"
+variable "db_username" {
+  description = "Username for the PostgreSQL database"
   type        = string
-  default     = "10.0.0.0/16"
+  sensitive   = true
+  default     = "postgres"
 }
 
-variable "subnet_cidr" {
-  description = "CIDR block for the subnet"
+variable "db_password" {
+  description = "Password for the PostgreSQL database"
   type        = string
-  default     = "10.0.1.0/24"
+  sensitive   = true
 }
 
-variable "key_name" {
-  description = "Name for the AWS key pair"
+variable "db_port" {
+  description = "Port for the PostgreSQL database"
   type        = string
+  default     = "5432"
 }
 
-variable "public_key_path" {
-  description = "Path to the public SSH key file"
+variable "debug" {
+  description = "Debug mode for the application"
   type        = string
-}
-
-variable "private_key_path" {
-  description = "Path to the private SSH key file"
-  type        = string
-}
-
-variable "ami_id" {
-  description = "AMI ID for Ubuntu 22.04 (t2.micro compatible)"
-  type        = string
+  default     = "False"
 }

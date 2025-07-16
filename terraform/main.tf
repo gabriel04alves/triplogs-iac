@@ -1,68 +1,118 @@
-provider "aws" {
-  region = var.aws_region
-}
+#############################
+# VPC e Subnets
+#############################
 
 resource "aws_vpc" "main" {
-  cidr_block = var.vpc_cidr
+  cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags = { Name = "triplogs-vpc" }
 }
 
-resource "aws_subnet" "main" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = var.subnet_cidr
-  availability_zone = var.aws_az
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main.id
+}
+
+# Subnets públicas (para o EKS)
+resource "aws_subnet" "public" {
+  count                   = 2
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = cidrsubnet(aws_vpc.main.cidr_block, 8, count.index)
+  availability_zone       = element(["us-east-1a", "us-east-1b"], count.index)
   map_public_ip_on_launch = true
-  tags = { Name = "triplogs-subnet" }
 }
 
-resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.main.id
+# Subnets privadas (para o RDS)
+resource "aws_subnet" "private" {
+  count                   = 2
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = cidrsubnet(aws_vpc.main.cidr_block, 8, count.index + 10)
+  availability_zone       = element(["us-east-1a", "us-east-1b"], count.index)
+  map_public_ip_on_launch = false
 }
 
-resource "aws_route_table" "rt" {
+resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
+
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gw.id
+    gateway_id = aws_internet_gateway.igw.id
   }
 }
 
-resource "aws_route_table_association" "a" {
-  subnet_id      = aws_subnet.main.id
-  route_table_id = aws_route_table.rt.id
+resource "aws_route_table_association" "public" {
+  count          = length(aws_subnet.public)
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public.id
 }
 
-resource "aws_security_group" "k3s" {
-  name        = "k3s-sg"
-  description = "Allow k3s, SSH, HTTP, HTTPS"
+#############################
+# IAM Roles e Policies
+#############################
+
+# Cluster Role
+resource "aws_iam_role" "eks_cluster_role" {
+  name = "eks_cluster_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Principal = { Service = "eks.amazonaws.com" },
+      Action   = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eks_cluster_AmazonEKSClusterPolicy" {
+  role       = aws_iam_role.eks_cluster_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+}
+
+# Node Role
+resource "aws_iam_role" "eks_node_role" {
+  name = "eks_node_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Principal = { Service = "ec2.amazonaws.com" },
+      Action   = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "node_AmazonEKSWorkerNodePolicy" {
+  role       = aws_iam_role.eks_node_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "node_AmazonEKS_CNI_Policy" {
+  role       = aws_iam_role.eks_node_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+}
+
+resource "aws_iam_role_policy_attachment" "node_AmazonEC2ContainerRegistryReadOnly" {
+  role       = aws_iam_role.eks_node_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+#############################
+# Security Group e Subnet Group para RDS
+#############################
+
+resource "aws_security_group" "rds_sg" {
+  name        = "rds-sg"
+  description = "Permitir acesso interno ao RDS"
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    from_port   = 22
-    to_port     = 22
+    from_port   = 5432
+    to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["10.0.0.0/16"]
   }
-  ingress {
-    from_port   = 6443
-    to_port     = 6443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -71,25 +121,76 @@ resource "aws_security_group" "k3s" {
   }
 }
 
-resource "aws_key_pair" "deployer" {
-  key_name   = var.key_name
-  public_key = file(var.public_key_path)
+resource "aws_db_subnet_group" "rds" {
+  name       = "rds-subnet-group"
+  subnet_ids = aws_subnet.private[*].id
+
+  tags = {
+    Name = "rds-subnet-group"
+  }
 }
 
-resource "aws_instance" "control_plane" {
-  ami           = var.ami_id
-  instance_type = "t3.medium"
-  subnet_id     = aws_subnet.main.id
-  vpc_security_group_ids = [aws_security_group.k3s.id]
-  key_name      = aws_key_pair.deployer.key_name
-  tags = { Name = "k3s-control-plane" }
+#############################
+# RDS PostgreSQL
+#############################
+
+resource "aws_db_instance" "postgres" {
+  identifier              = "mail-postgres"
+  allocated_storage       = 20
+  engine                  = "postgres"
+  engine_version          = "14.12"
+  instance_class          = "db.t3.micro"
+  db_name                 = var.db_name
+  username                = var.db_username
+  password                = var.db_password
+  db_subnet_group_name    = aws_db_subnet_group.rds.name
+  vpc_security_group_ids  = [aws_security_group.rds_sg.id]
+  skip_final_snapshot     = true
+  publicly_accessible     = false
+  multi_az                = false
+
+  depends_on = [aws_db_subnet_group.rds]
 }
 
-resource "aws_instance" "worker" {
-  ami           = var.ami_id
-  instance_type = "t3.medium"
-  subnet_id     = aws_subnet.main.id
-  vpc_security_group_ids = [aws_security_group.k3s.id]
-  key_name      = aws_key_pair.deployer.key_name
-  tags = { Name = "k3s-worker" }
+#############################
+# Helm (ArgoCD)
+#############################
+
+resource "helm_release" "argocd" {
+  name       = "argocd"
+  namespace  = "argocd"
+  repository = "https://argoproj.github.io/argo-helm"
+  chart      = "argo-cd"
+  version    = "5.46.7"
+
+  create_namespace = true
+
+  values = [
+    file("${path.module}/argocd-values.yaml")
+  ]
+
+  depends_on = [
+    aws_db_instance.postgres
+  ]
+}
+
+resource "kubernetes_secret" "app_secrets" {
+  metadata {
+    name      = "app-secrets"
+    namespace = "default"
+  }
+
+  data = {
+    DB_HOST       = aws_db_instance.postgres.address
+    DB_PORT       = var.db_port
+    DB_NAME       = var.db_name
+    DB_USER       = var.db_username
+    DB_PASSWORD       = var.db_password
+
+    DEBUG                = var.debug
+  }
+
+  type = "Opaque"
+
+  depends_on = [aws_db_instance.postgres]
 }

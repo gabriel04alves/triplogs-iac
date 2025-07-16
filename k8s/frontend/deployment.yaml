@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: triplogs-frontend
+  namespace: triplogs-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: triplogs-frontend
+  template:
+    metadata:
+      labels:
+        app: triplogs-frontend
+    spec:
+      containers:
+        - name: triplogs-frontend
+          image: ghcr.io/gabriel04alves/triplogs-frontend:latest
+          ports:
+            - containerPort: 80
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: VITE_API_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: triplogs-frontend-config
+                  key: VITE_API_BASE_URL
+            - name: VITE_APP_TITLE
+              valueFrom:
+                configMapKeyRef:
+                  name: triplogs-frontend-config
+                  key: VITE_APP_TITLE
+            - name: VITE_APP_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: triplogs-frontend-config
+                  key: VITE_APP_VERSION
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"

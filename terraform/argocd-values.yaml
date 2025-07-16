@@ -1,0 +1,15 @@
+controller:
+  enabled: true
+
+server:
+  service:
+    type: LoadBalancer
+
+dex:
+  enabled: false
+
+notifications:
+  enabled: false
+
+applicationSet:
+  enabled: false

@@ -4,6 +4,8 @@ kind: Kustomization
 resources:
   - deployment.yaml
   - service.yaml
+  - configmap.yaml
 
 images:
-  - name: ghcr.io/gabriel04alves/triplogs-frontend
+  - name: ghcr.io/gabriel04alves/triplogs-backend
+    newTag: latest
