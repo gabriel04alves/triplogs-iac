@@ -9,4 +9,4 @@ resources:
 images:
 - name: ghcr.io/gabriel04alves/triplogs-frontend
   newName: ghcr.io/gabriel04alves/triplogs-frontend
-  newTag: 9f23719e738c68fe48a62bb46e45f278d13f9d54
+  newTag: da85b0d237f5b118180101a8246cbf4a2b8a844c
