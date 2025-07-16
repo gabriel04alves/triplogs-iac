@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: triplogs-backend-config
-  namespace: triplogs-prod
+  namespace: default
 data:
   # Modo de execução
   MODE: "PRODUCTION"

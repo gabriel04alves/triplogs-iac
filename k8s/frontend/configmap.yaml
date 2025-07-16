@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: triplogs-frontend-config
-  namespace: triplogs-prod
+  namespace: default
 data:
   # URL base da API backend
   VITE_API_BASE_URL: "http://triplogs-backend-service.triplogs-prod.svc.cluster.local:3000/api"

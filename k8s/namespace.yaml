@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: triplogs-prod
-  labels:
-    name: triplogs-prod
-    managed-by: argocd
