@@ -5,7 +5,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - configmap.yaml
-  - ingress.yaml
+  # - ingress.yaml
 
 images:
   - name: ghcr.io/gabriel04alves/triplogs-backend
