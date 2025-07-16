@@ -4,8 +4,9 @@ metadata:
   name: triplogs-backend-ingress
   namespace: default
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /api/$2
+    nginx.ingress.kubernetes.io/rewrite-target: /api/(.*)
 spec:
+  ingressClassName: nginx
   rules:
     - http:
         paths:
