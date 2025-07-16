@@ -5,4 +5,4 @@ resources:
   - backend/
   - frontend/
 
-namespace: triplogs-prod
+namespace: default
