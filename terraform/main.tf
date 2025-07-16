@@ -135,7 +135,7 @@ resource "aws_db_subnet_group" "rds" {
 #############################
 
 resource "aws_db_instance" "postgres" {
-  identifier              = "mail-postgres"
+  identifier              = "triplogs-postgres"
   allocated_storage       = 20
   engine                  = "postgres"
   engine_version          = "14.12"
@@ -168,9 +168,11 @@ resource "helm_release" "argocd" {
   values = [
     file("${path.module}/argocd-values.yaml")
   ]
-
+  
   depends_on = [
-    aws_db_instance.postgres
+    aws_db_instance.postgres,
+    aws_eks_cluster.triplogs,
+    aws_eks_node_group.node_group
   ]
 }
 
@@ -194,3 +196,39 @@ resource "kubernetes_secret" "app_secrets" {
 
   depends_on = [aws_db_instance.postgres]
 }
+
+# Define the EKS control plane
+resource "aws_eks_cluster" "triplogs" {
+  name     = "triplogs"
+  role_arn = aws_iam_role.eks_cluster_role.arn
+
+  vpc_config {
+    subnet_ids = concat(
+      aws_subnet.public[*].id,
+      aws_subnet.private[*].id,
+    )
+    # AWS will provision the default control‐plane SG if none is provided
+  }
+}
+
+resource "aws_eks_node_group" "node_group" {
+  cluster_name    = aws_eks_cluster.triplogs.name
+  node_group_name = "triplogs-node-group"
+  node_role_arn   = aws_iam_role.eks_node_role.arn
+  subnet_ids      = aws_subnet.public[*].id
+
+  scaling_config {
+    desired_size = 5
+    max_size     = 5
+    min_size     = 1
+  }
+
+  instance_types = ["t3.micro"]
+
+  depends_on = [
+    aws_iam_role_policy_attachment.node_AmazonEKSWorkerNodePolicy,
+    aws_iam_role_policy_attachment.node_AmazonEKS_CNI_Policy,
+    aws_iam_role_policy_attachment.node_AmazonEC2ContainerRegistryReadOnly
+  ]
+}
+
