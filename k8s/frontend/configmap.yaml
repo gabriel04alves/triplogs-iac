@@ -4,4 +4,4 @@ metadata:
   name: triplogs-frontend-config
   namespace: default
 data:
-  VITE_API_BASE_URL: "http://a39c0781e6aba4cbb8692c5dd62b6922-11092543.us-east-1.elb.amazonaws.com/api"
+  VITE_API_BASE_URL: "http://a39c0781e6aba4cbb8692c5dd62b6922-11092543.us-east-1.elb.amazonaws.com:3000/api"
