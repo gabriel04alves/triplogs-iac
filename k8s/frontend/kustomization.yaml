@@ -2,11 +2,11 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - deployment.yaml
-  - service.yaml
+- deployment.yaml
+- service.yaml
   # - configmap.yaml
 
 images:
-  - name: ghcr.io/gabriel04alves/triplogs-frontend
-    newName: ghcr.io/gabriel04alves/triplogs-frontend
-    newTag: 076cd13d86f21e3a05e4b6c208f101cec5a57086
+- name: ghcr.io/gabriel04alves/triplogs-frontend
+  newName: ghcr.io/gabriel04alves/triplogs-frontend
+  newTag: ba34c50b3ad7d172b42cceff7b9b529d4f8a85b9
